@@ -1,5 +1,4 @@
 import feedparser
-import schedule
 import time
 from database import RAG, UserDatabase
 import numpy as np
@@ -13,8 +12,6 @@ def fetch_cs_updates():
     feed_url = "https://rss.arxiv.org/rss/"
 
     rag = RAG()
-    userDatabase = UserDatabase("/Users/cowolff/Documents/GitHub/AIlluminator/database.db")
-    userDatabase.connect()
 
     timestamp = time.time()
 

@@ -1,5 +1,4 @@
 import feedparser
-import schedule
 import time
 from database import RAG
 import numpy as np

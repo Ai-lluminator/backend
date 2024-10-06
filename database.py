@@ -1,13 +1,27 @@
 import chromadb
-from chromadb.utils import embedding_functions # This helps us fetch our embedding model
+from chromadb import Documents, EmbeddingFunction, Embeddings
 import sqlite3
-import json
+from ollama import Client
+
+class LargeEmbeddingFunction(EmbeddingFunction):
+    def __init__(self, model_name: str) -> None:
+        # This model supports two prompts: "s2p_query" and "s2s_query" for sentence-to-passage and sentence-to-sentence tasks, respectively.
+        self.model_name = model_name
+        self.client = Client("http://localhost:7869")
+
+    def __call__(self, input: Documents) -> Embeddings:
+        response = self.client.embed(model=self.model_name, input=input)
+        print(response.keys())
+        embedding = response["embeddings"]
+        # embed the documents somehow
+        return embedding
 
 class RAG:
 
     def __init__(self) -> None:
-        self.embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="dunzhang/stella_en_400M_v5")
-        self.client = chromadb.PersistentClient(path="/Users/cowolff/Documents/GitHub/AIlluminator/chromadb")
+        self.embedding_model = LargeEmbeddingFunction("mxbai-embed-large")
+        # self.embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="dunzhang/stella_en_400M_v5")
+        self.client = chromadb.PersistentClient(path="chromadb")
         self.__init_database()
         self.collection = self.client.get_or_create_collection(
             name=f"Green-AI",

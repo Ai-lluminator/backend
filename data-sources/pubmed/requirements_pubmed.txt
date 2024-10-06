@@ -1,0 +1,7 @@
+feedparser==6.0.11
+Flask==3.0.3
+numpy==2.1.2
+pandas==2.2.3
+python-telegram-bot==21.6
+Requests==2.32.3
+tqdm==4.66.1

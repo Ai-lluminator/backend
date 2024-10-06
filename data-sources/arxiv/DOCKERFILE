@@ -1,0 +1,16 @@
+
+# Use a base Python image
+FROM python:3.11-slim
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Copy the Python script into the container
+COPY arxiv_crawler.py .
+
+# Install any required dependencies (if you have a requirements.txt file)
+COPY requirements_arxiv.txt .
+RUN pip install --no-cache-dir -r requirements_arxiv.txt
+
+# Define the command to run the script
+CMD ["python", "./arxiv_crawler.py"]
