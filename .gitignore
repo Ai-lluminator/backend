@@ -4,3 +4,4 @@
 /ollama/ollama
 /ollama/ollama-webui
 .env
+*.pyc

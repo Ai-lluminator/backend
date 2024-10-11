@@ -2,6 +2,11 @@ import psycopg2
 import sqlite3
 from ollama import Client
 import json
+import os
+from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
+
+load_dotenv()
 
 class LargeEmbeddingFunction():
     def __init__(self, model_name: str, embedding_link: str) -> None:
@@ -38,7 +43,7 @@ class RAG:
         cur.execute("SELECT link FROM papers WHERE link = ANY(%s)", (urls,))
         # cur.execute("SELECT link FROM papers")
         results = cur.fetchall()
-        print(results)
+        results = [result[0] for result in results]
         return results
 
     def add_documents(self, urls, titles, contents):
@@ -52,35 +57,61 @@ class RAG:
         cur.close()
 
     def query(self, prompt, limit=1, updated_at=None):
-        if updated_at is None:
-            return self.collection.query(query_texts=prompt, n_results=limit)
-        else:
-            statement = {
-                "timestamp": {
-                    "$gt": updated_at
+        cur = self.conn.cursor()
+        query_embedding = self.vectorize(prompt)
+
+        cur.execute(
+            """SELECT id, title, link, 1 - (embedding <=> %s) AS cosine_similarity
+               FROM papers
+               ORDER BY cosine_similarity DESC LIMIT 5""",
+            (query_embedding,)
+        )
+
+        papers = []
+        for row in cur.fetchall():
+            print(row)
+            try:
+                paper_data = {
+                    "id": row[0],
+                    "title": row[1],
+                    "link": row[2]
                 }
-            }
-            return self.collection.query(query_texts=prompt, n_results=limit, where=statement)
-    
+                papers.append(paper_data)
+            except Exception as e:
+                print(e)
+        cur.close()
+        print(papers)
+        return papers
 
 class UserDatabase:
-    def __init__(self, db_path):
-        self.db_path = db_path
+    def __init__(self):
+        # self.db_host = os.environ.get("DB_HOST")
+        self.db_host = "localhost"
+        self.db_name = os.environ.get("DB_NAME")
+        self.db_user = os.environ.get("POSTGRES_USER")
+        self.db_password = os.environ.get("POSTGRES_PASSWORD")
+        self.db_port = 5432
 
     def connect(self):
-        """Establish a connection to the SQLite database."""
-        self.conn = sqlite3.connect(self.db_path)
-        self.conn.row_factory = sqlite3.Row  # Access columns by names
+        """Establish a connection to the PostgreSQL database."""
+        self.conn = psycopg2.connect(
+            host=self.db_host,
+            database=self.db_name,
+            user=self.db_user,
+            password=self.db_password,
+            port=self.db_port
+        )
+        self.conn.autocommit = True
 
     def close(self):
-        """Close the connection to the SQLite database."""
+        """Close the connection to the PostgreSQL database."""
         if self.conn:
             self.conn.close()
 
     def extract_data(self):
         """Extract data and format it according to the specified dictionary format."""
-        cursor = self.conn.cursor()
-        # Join users and prompts tables to get the required information
+        self.connect()
+        cursor = self.conn.cursor(cursor_factory=RealDictCursor)
         query = """
         SELECT u.email AS name, u.id AS id, u.telegram_id, p.prompt, u.updated_at
         FROM users u
@@ -92,23 +123,25 @@ class UserDatabase:
         for row in cursor.fetchall():
             user_key = row['id']
             if user_key not in users_data:
-                users_data[user_key] = {}
-                users_data[user_key]['telegram_id'] = row['telegram_id']
-                users_data[user_key]['prompt'] = []
-                users_data[user_key]['name'] = row['name']
-                users_data[user_key]['updated_at'] = row['updated_at']
+                users_data[user_key] = {
+                    'telegram_id': row['telegram_id'],
+                    'prompt': [],
+                    'name': row['name'],
+                    'updated_at': row['updated_at']
+                }
             users_data[user_key]['prompt'].append(row['prompt'])
 
-        # Format the data as required
-        data_list = [{"id": key, "telegram_id": data['telegram_id'], "prompt": data['prompt'], "updated_at":data['updated_at']} for key, data in users_data.items()]
-
+        data_list = [{"id": key, "telegram_id": data['telegram_id'], "prompt": data['prompt'], "updated_at": data['updated_at']} for key, data in users_data.items()]
+        self.close()
         return {"data": data_list}
 
     def user_exists(self, telegram_id):
         """Check if a user exists in the database."""
+        self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM users WHERE telegram_id = ?", (telegram_id,))
+        cursor.execute("SELECT COUNT(*) FROM users WHERE telegram_id = %s", (telegram_id,))
         count = cursor.fetchone()[0]
+        self.close()
         return count > 0
 
     def insert_user(self, chat_id, telegram_id):
@@ -116,94 +149,102 @@ class UserDatabase:
         self.connect()
         try:
             cursor = self.conn.cursor()
-            # Insert the user into the users table
-            cursor.execute("INSERT INTO users (chat_id, telegram_id) VALUES (?, ?)", (chat_id, telegram_id))
-            self.conn.commit()
+            cursor.execute("INSERT INTO users (chat_id, telegram_id) VALUES (%s, %s)", (chat_id, telegram_id))
         finally:
             self.close()
 
     def insert_prompt(self, telegram_id, prompt):
         """Insert a new prompt into the database."""
+        self.connect()
         cursor = self.conn.cursor()
-        # Get the user's ID
-        cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        # Insert the prompt into the prompts table
-        cursor.execute("INSERT INTO prompts (user_id, prompt) VALUES (?, ?)", (user_id, prompt))
-        self.conn.commit()
+        cursor.execute("INSERT INTO prompts (user_id, prompt) VALUES (%s, %s)", (user_id, prompt))
+        self.close()
 
     def delete_user(self, telegram_id):
         """Delete a user from the database."""
+        self.connect()
         cursor = self.conn.cursor()
-        # Get the user's ID
-        cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        # Delete the user's prompts
-        cursor.execute("DELETE FROM prompts WHERE user_id = ?", (user_id,))
-        # Delete the user
-        cursor.execute("DELETE FROM users WHERE telegram_id = ?", (telegram_id,))
-        self.conn.commit()
+        cursor.execute("DELETE FROM prompts WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM users WHERE telegram_id = %s", (telegram_id,))
+        self.close()
 
     def get_prompts(self, telegram_id):
         """Get all prompts for a user."""
+        self.connect()
         cursor = self.conn.cursor()
-        # Get the user's ID
-        cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        # Get the user's prompts
-        cursor.execute("SELECT prompt FROM prompts WHERE user_id = ?", (user_id,))
+        cursor.execute("SELECT prompt FROM prompts WHERE user_id = %s", (user_id,))
         prompts = [row[0] for row in cursor.fetchall()]
+        self.close()
         return prompts
 
     def prompt_exists(self, telegram_id, prompt):
         """Check if a prompt exists for a user."""
+        self.connect()
         cursor = self.conn.cursor()
-        # Get the user's ID
-        cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        # Check if the prompt exists
-        cursor.execute("SELECT COUNT(*) FROM prompts WHERE user_id = ? AND prompt = ?", (user_id, prompt))
+        cursor.execute("SELECT COUNT(*) FROM prompts WHERE user_id = %s AND prompt = %s", (user_id, prompt))
         count = cursor.fetchone()[0]
+        self.close()
         return count > 0
 
     def delete_prompt(self, telegram_id, prompt):
+        """Delete a prompt for a user."""
+        self.connect()
         cursor = self.conn.cursor()
-        # Get the user's ID
-        cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        # Delete the prompt
-        cursor.execute("DELETE FROM prompts WHERE user_id = ? AND prompt = ?", (user_id, prompt))
-        self.conn.commit()
+        cursor.execute("DELETE FROM prompts WHERE user_id = %s AND prompt = %s", (user_id, prompt))
+        self.close()
 
     def get_user_id(self, telegram_id):
+        """Get the user ID based on telegram ID."""
+        self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
         user_id = cursor.fetchone()[0]
+        self.close()
         return user_id
 
     def get_chat_id(self, user_id):
+        """Get the chat ID based on user ID."""
+        self.connect()
         cursor = self.conn.cursor()
-        print(type(user_id))
-        cursor.execute("SELECT chat_id FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT chat_id FROM users WHERE id = %s", (user_id,))
         chat_id = cursor.fetchone()[0]
+        self.close()
         return chat_id
-    
+
     def record_messages_sent(self, user_id, messages_sent):
+        """Record the number of messages sent by a user."""
+        self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO messages_sent (num_papers, user_id) VALUES (?, ?)", (messages_sent, user_id))
-        self.conn.commit()
+        cursor.execute("INSERT INTO messages_sent (num_papers, user_id) VALUES (%s, %s)", (messages_sent, user_id))
+        self.close()
 
     def record_num_users(self, num_users):
+        """Record the total number of users."""
+        self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO number_users (num_users) VALUES (?)", (num_users,))
-        self.conn.commit()
+        cursor.execute("INSERT INTO number_users (num_users) VALUES (%s)", (num_users,))
+        self.close()
 
     def store_preview(self, user_id, prompt):
+        """Store a preview of the prompt."""
+        self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO preview_papers (user_id, prompt) VALUES (?, ?)", (user_id, prompt))
-        self.conn.commit()
+        cursor.execute("INSERT INTO preview_papers (user_id, prompt) VALUES (%s, %s)", (user_id, prompt))
+        self.close()
 
     def update_user(self, user_id, updated_at):
+        """Update the user’s last updated timestamp."""
+        self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("UPDATE users SET updated_at = ? WHERE id = ?", (updated_at, user_id))
-        self.conn.commit()
+        cursor.execute("UPDATE users SET updated_at = %s WHERE id = %s", (updated_at, user_id))
+        self.close()

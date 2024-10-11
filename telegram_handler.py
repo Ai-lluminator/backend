@@ -3,13 +3,15 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 import threading
 from database import UserDatabase, RAG
 import os
+from dotenv import load_dotenv
 
-database_file = 'database.db'
+load_dotenv()
+
 token = os.getenv('TELEGRAM_BOT_TOKEN')
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Sends a message to the user
-    database = UserDatabase(database_file)
+    database = UserDatabase()
     database.connect()
     if not database.user_exists(update.message.from_user.id):
         database.insert_user(update.message.chat_id, update.message.from_user.id)
@@ -19,7 +21,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Sends a message to the user
-    database = UserDatabase(database_file)
+    database = UserDatabase()
     database.connect()
     database.delete_user(update.message.from_user.id)
     await update.message.reply_text('Goodbye!')
@@ -44,7 +46,7 @@ async def add_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text("Please provide a prompt like '/add_prompt I want to know everything'.")
         return
     prompt = ' '.join(context.args)  # Joining all arguments into a single string as a prompt
-    database = UserDatabase(database_file)
+    database = UserDatabase()
     database.connect()
 
     # Check if the prompt already exists
@@ -60,7 +62,7 @@ async def add_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text("Please register with this service first using /start.")
 
 async def delete_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    database = UserDatabase(database_file)
+    database = UserDatabase()
     database.connect()
     if database.user_exists(update.message.from_user.id):
         user_id = update.message.from_user.id
@@ -83,18 +85,23 @@ async def preview_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("Please provide a prompt like '/preview_prompt I want to know everything'.")
         return
     # Print the prompt to the console (server-side)
-    database = UserDatabase(database_file)
+    database = UserDatabase()
     database.connect()
     if database.user_exists(update.message.from_user.id):
         prompt = ' '.join(context.args)  # Joining all arguments into a single string as a prompt
         user_id = database.get_user_id(update.message.from_user.id)
         database.store_preview(user_id, prompt)
-        rag = RAG()
+        db_host = "localhost"
+        db_name = os.environ.get("DB_NAME")
+        db_user = os.environ.get("POSTGRES_USER")
+        db_password = os.environ.get("POSTGRES_PASSWORD")
+        db_port = 5432
+        rag = RAG(db_host, db_port, "localhost:11434", db_user, db_password, db_name)
         papers = rag.query(prompt, limit=6)
         response_string = "*Potential papers for this prompt:*"
-        for paper in zip(papers['documents'][0], papers['metadatas'][0]):
-            link = paper[1]['link']
-            title = paper[1]['title']
+        for paper in papers:
+            link = paper['link']
+            title = paper['title']
             response_string += f"\n\n*{title}*\nLink: {link}"
         await update.message.reply_markdown(response_string, disable_web_page_preview=True)
     else:
@@ -107,13 +114,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     prompt_to_delete = query.data
     user_id = query.from_user.id
     
-    database = UserDatabase(database_file)
+    database = UserDatabase()
     database.connect()
     database.delete_prompt(user_id, prompt_to_delete)
     await query.edit_message_text(text=f"Prompt '{prompt_to_delete}' deleted successfully.")
 
 async def get_prompts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    database = UserDatabase(database_file)
+    database = UserDatabase()
     database.connect()
     if database.user_exists(update.message.from_user.id):
         telegram_id = update.message.from_user.id

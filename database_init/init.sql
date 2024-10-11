@@ -48,6 +48,11 @@ CREATE TABLE IF NOT EXISTS paper_in_message (
     FOREIGN KEY (message_id) REFERENCES messages_sent (id),
     FOREIGN KEY (paper_id) REFERENCES papers (id)
 );
+
+CREATE TABLE IF NOT EXISTS preview_papers(
+    user_id INTEGER NOT NULL,
+    prompt TEXT NOT NULL
+);
 -- Output message for successful database initialization
 DO $$ 
 BEGIN 

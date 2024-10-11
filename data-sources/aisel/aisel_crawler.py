@@ -38,6 +38,8 @@ def fetch_cs_updates():
     links_to_remove = rag.check_id_exists(links)
     data = [entry for entry in feed.entries if entry.link not in links_to_remove]
 
+    print("Number of new papers: ", len(data))
+
     urls = [entry.link for entry in data]
     titles = [entry.title for entry in data]
     contents = [f"{entry.title} \n {entry.summary}" for entry in data]
