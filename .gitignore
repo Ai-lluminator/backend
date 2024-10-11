@@ -1,5 +1,6 @@
 
 *.zip
 /training/chromadb
-/ollama
+/ollama/ollama
+/ollama/ollama-webui
 .env
