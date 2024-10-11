@@ -1,0 +1,48 @@
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'
+Traceback (most recent call last):
+  File "/usr/src/app/pubmed_crawler.py", line 6, in <module>
+    from database import RAG
+ModuleNotFoundError: No module named 'database'

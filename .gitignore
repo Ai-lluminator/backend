@@ -2,3 +2,4 @@
 *.zip
 /training/chromadb
 /ollama
+.env

@@ -1,62 +1,55 @@
-import chromadb
-from chromadb import Documents, EmbeddingFunction, Embeddings
+import psycopg2
 import sqlite3
 from ollama import Client
+import json
 
-class LargeEmbeddingFunction(EmbeddingFunction):
-    def __init__(self, model_name: str) -> None:
+class LargeEmbeddingFunction():
+    def __init__(self, model_name: str, embedding_link: str) -> None:
         # This model supports two prompts: "s2p_query" and "s2s_query" for sentence-to-passage and sentence-to-sentence tasks, respectively.
         self.model_name = model_name
-        self.client = Client("http://localhost:7869")
+        self.client = Client(embedding_link)
 
-    def __call__(self, input: Documents) -> Embeddings:
+    def __call__(self, input):
         response = self.client.embed(model=self.model_name, input=input)
-        print(response.keys())
-        embedding = response["embeddings"]
-        # embed the documents somehow
-        return embedding
+        embedding = response["embeddings"][0]
+
+        return json.dumps(embedding)
 
 class RAG:
 
-    def __init__(self) -> None:
-        self.embedding_model = LargeEmbeddingFunction("mxbai-embed-large")
+    def __init__(self, postgres_link, postgres_port, embedding_link, db_user, db_password, db_name) -> None:
+        self.embedding_model = LargeEmbeddingFunction("all-minilm", embedding_link)
         # self.embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="dunzhang/stella_en_400M_v5")
-        self.client = chromadb.PersistentClient(path="chromadb")
-        self.__init_database()
-        self.collection = self.client.get_or_create_collection(
-            name=f"Green-AI",
-            metadata={"hnsw:space": "cosine"},
-            embedding_function=self.embedding_model,
+        self.conn = psycopg2.connect(
+            user=db_user,
+            password=db_password,
+            host=postgres_link,
+            port=postgres_port,  # The port you exposed in docker-compose.yml
+            database=db_name
         )
-
-    def __init_database(self):
-        collection_exists = "Green-AI" in [collection.name for collection in self.client.list_collections()]
-        if not collection_exists:
-            collection = self.client.create_collection(
-                name=f"Green-AI",
-                metadata={"hnsw:space": "cosine"}, # l2 is the default
-                embedding_function=self.embedding_model,
-            )
 
     def vectorize(self, document):
         embedding = self.embedding_model(document)
         return embedding
     
-    def check_id_exists(self, ids):
-        if isinstance(ids, list):
-            exists = [id in self.collection.get()["ids"] for id in ids]
-            return exists
-        else:
-            if id in self.collection.get()["ids"]:
-                return True
-            return False
+    def check_id_exists(self, urls):
+        # Checks whether the urls are already in the papers table and returns a boolean list
+        cur = self.conn.cursor()
+        cur.execute("SELECT link FROM papers WHERE link = ANY(%s)", (urls,))
+        # cur.execute("SELECT link FROM papers")
+        results = cur.fetchall()
+        print(results)
+        return results
 
-    def add_documents(self, documents, metadata, ids):
-        self.collection.add(
-            documents=documents,
-            metadatas=metadata,
-            ids=ids,
-        )
+    def add_documents(self, urls, titles, contents):
+        vectors = [self.vectorize(content) for content in contents]
+        cur = self.conn.cursor()
+
+        for url, title, content, vector in zip(urls, titles, contents, vectors):
+            cur.execute("INSERT INTO papers (link, title, content, embedding) VALUES (%s, %s, %s, %s)", (url, title, content, vector))
+
+        self.conn.commit()
+        cur.close()
 
     def query(self, prompt, limit=1, updated_at=None):
         if updated_at is None:
