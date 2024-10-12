@@ -11,6 +11,7 @@ from handlers.basic import start, stop, help, handle_message, delete_me
 from handlers.preview import preview_prompt
 from handlers.prompts import add_prompt, delete_prompt, get_prompts
 from handlers.button import button
+from handlers.explain import summarize_paper
 
 load_dotenv()
 
@@ -33,6 +34,13 @@ def main():
 
     # Add a command handler for command '/preview_prompt'
     application.add_handler(CommandHandler('preview_prompt', preview_prompt))
+
+    # Add a command handler for command '/summarize_paper'
+    application.add_handler(CommandHandler('summarize', summarize_paper))
+    application.add_handler(CallbackQueryHandler(button))
+
+    # Add a command handler for command '/delete_me'
+    application.add_handler(CommandHandler('delete_me', delete_me))
 
     # Add a command handler for command '/help'
     application.add_handler(CommandHandler('help', help))

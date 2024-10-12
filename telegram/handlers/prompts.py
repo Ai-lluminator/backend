@@ -37,7 +37,7 @@ async def delete_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             return
 
         keyboard = [
-            [InlineKeyboardButton(prompt, callback_data=prompt) for prompt in prompts]
+            [InlineKeyboardButton(prompt, callback_data=f"delete_{prompt}") for prompt in prompts]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text('Please choose a prompt to delete:', reply_markup=reply_markup)

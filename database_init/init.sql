@@ -41,6 +41,15 @@ CREATE TABLE IF NOT EXISTS papers (
     embedding   vector(384)
 );
 
+-- CREATE the 'summary' table
+CREATE TABLE IF NOT EXISTS summary (
+    id          SERIAL PRIMARY KEY,
+    paper_id    INTEGER NOT NULL,
+    summary     TEXT NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (paper_id) REFERENCES papers (id)
+);
+
 -- Create the 'paper_in_mesage' table
 CREATE TABLE IF NOT EXISTS paper_in_message (
     message_id INTEGER NOT NULL,

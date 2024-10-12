@@ -44,6 +44,15 @@ class RAG:
         results = cur.fetchall()
         results = [result[0] for result in results]
         return results
+    
+    def check_summary_exists(self, paper_id):
+        cur = self.conn.cursor()
+        cur.execute("SELECT id, summary FROM summary WHERE paper_id = %s;", (paper_id,))
+        results = cur.fetchall()
+        if len(results) == 0:
+            return False, ""
+        else:
+            return True, results[0][1]
 
     def add_documents(self, urls, titles, contents):
         vectors = [self.vectorize(content) for content in contents]
@@ -54,6 +63,13 @@ class RAG:
 
         self.conn.commit()
         cur.close()
+
+    def get_document(self, paper_id):
+        cur = self.conn.cursor()
+        cur.execute("SELECT id, title, content FROM papers WHERE id = %s;", (paper_id,))
+        id, title, content = cur.fetchone()
+        cur.close()
+        return id, title, content
 
     def query(self, prompt, limit=1, updated_at=None):
         cur = self.conn.cursor()
@@ -240,6 +256,23 @@ class UserDatabase:
         message_id = cursor.fetchone()[0]
         self.close()
         return message_id
+    
+    def get_papers_from_last_message(self, user_id):
+        """Get papers from the last message sent to the user."""
+        self.connect()
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id FROM messages_sent WHERE user_id = %s ORDER BY id DESC LIMIT 1;", (user_id,))
+        message_id = cursor.fetchone()[0]
+        cursor.execute("SELECT paper_id FROM paper_in_message WHERE message_id = %s;", (message_id,))
+        paper_ids = [row[0] for row in cursor.fetchall()]
+        papers = []
+        print(paper_ids)
+        for paper_id in paper_ids:
+            cursor.execute("SELECT title, link FROM papers WHERE id = %s;", (paper_id,))
+            title, link = cursor.fetchone()
+            papers.append({"id": paper_id, "title": title, "link": link})
+        self.close()
+        return papers
     
     def add_paper_to_message(self, message_id, paper_id):
         """Add a paper to a message."""
