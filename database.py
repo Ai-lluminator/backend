@@ -1,5 +1,4 @@
 import psycopg2
-import sqlite3
 from ollama import Client
 import json
 import os
@@ -40,7 +39,7 @@ class RAG:
     def check_id_exists(self, urls):
         # Checks whether the urls are already in the papers table and returns a boolean list
         cur = self.conn.cursor()
-        cur.execute("SELECT link FROM papers WHERE link = ANY(%s)", (urls,))
+        cur.execute("SELECT link FROM papers WHERE link = ANY(%s);", (urls,))
         # cur.execute("SELECT link FROM papers")
         results = cur.fetchall()
         results = [result[0] for result in results]
@@ -63,13 +62,12 @@ class RAG:
         cur.execute(
             """SELECT id, title, link, 1 - (embedding <=> %s) AS cosine_similarity
                FROM papers
-               ORDER BY cosine_similarity DESC LIMIT 5""",
+               ORDER BY cosine_similarity DESC LIMIT 5;""",
             (query_embedding,)
         )
 
         papers = []
         for row in cur.fetchall():
-            print(row)
             try:
                 paper_data = {
                     "id": row[0],
@@ -80,13 +78,12 @@ class RAG:
             except Exception as e:
                 print(e)
         cur.close()
-        print(papers)
         return papers
 
 class UserDatabase:
     def __init__(self):
         # self.db_host = os.environ.get("DB_HOST")
-        self.db_host = "localhost"
+        self.db_host = os.environ.get("DB_HOST")
         self.db_name = os.environ.get("DB_NAME")
         self.db_user = os.environ.get("POSTGRES_USER")
         self.db_password = os.environ.get("POSTGRES_PASSWORD")
@@ -115,7 +112,7 @@ class UserDatabase:
         query = """
         SELECT u.email AS name, u.id AS id, u.telegram_id, p.prompt, u.updated_at
         FROM users u
-        JOIN prompts p ON u.id = p.user_id
+        JOIN prompts p ON u.id = p.user_id;
         """
         cursor.execute(query)
 
@@ -139,7 +136,7 @@ class UserDatabase:
         """Check if a user exists in the database."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM users WHERE telegram_id = %s", (telegram_id,))
+        cursor.execute("SELECT COUNT(*) FROM users WHERE telegram_id = %s;", (telegram_id,))
         count = cursor.fetchone()[0]
         self.close()
         return count > 0
@@ -149,36 +146,45 @@ class UserDatabase:
         self.connect()
         try:
             cursor = self.conn.cursor()
-            cursor.execute("INSERT INTO users (chat_id, telegram_id) VALUES (%s, %s)", (chat_id, telegram_id))
+            cursor.execute("INSERT INTO users (chat_id, telegram_id) VALUES (%s, %s);", (chat_id, telegram_id))
+            self.conn.commit()
         finally:
             self.close()
 
-    def insert_prompt(self, telegram_id, prompt):
+    def insert_prompt(self, telegram_id, prompt, active=True):
         """Insert a new prompt into the database."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        cursor.execute("INSERT INTO prompts (user_id, prompt) VALUES (%s, %s)", (user_id, prompt))
+        cursor.execute("INSERT INTO prompts (user_id, prompt, active) VALUES (%s, %s, %s);", (user_id, prompt, active))
+        self.conn.commit()
+        cursor.close()
+
+         # return prompt_id
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id FROM prompts WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
+        prompt_id = cursor.fetchone()[0]
         self.close()
+        return prompt_id
 
     def delete_user(self, telegram_id):
         """Delete a user from the database."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        cursor.execute("DELETE FROM prompts WHERE user_id = %s", (user_id,))
-        cursor.execute("DELETE FROM users WHERE telegram_id = %s", (telegram_id,))
+        cursor.execute("DELETE FROM prompts WHERE user_id = %s;", (user_id,))
+        cursor.execute("DELETE FROM users WHERE telegram_id = %s;", (telegram_id,))
         self.close()
 
     def get_prompts(self, telegram_id):
         """Get all prompts for a user."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        cursor.execute("SELECT prompt FROM prompts WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT prompt FROM prompts WHERE user_id = %s;", (user_id,))
         prompts = [row[0] for row in cursor.fetchall()]
         self.close()
         return prompts
@@ -187,9 +193,9 @@ class UserDatabase:
         """Check if a prompt exists for a user."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM prompts WHERE user_id = %s AND prompt = %s", (user_id, prompt))
+        cursor.execute("SELECT COUNT(*) FROM prompts WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
         count = cursor.fetchone()[0]
         self.close()
         return count > 0
@@ -198,16 +204,16 @@ class UserDatabase:
         """Delete a prompt for a user."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        cursor.execute("DELETE FROM prompts WHERE user_id = %s AND prompt = %s", (user_id, prompt))
+        cursor.execute("DELETE FROM prompts WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
         self.close()
 
     def get_user_id(self, telegram_id):
         """Get the user ID based on telegram ID."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE telegram_id = %s", (telegram_id,))
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
         self.close()
         return user_id
@@ -216,35 +222,49 @@ class UserDatabase:
         """Get the chat ID based on user ID."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("SELECT chat_id FROM users WHERE id = %s", (user_id,))
+        cursor.execute("SELECT chat_id FROM users WHERE id = %s;", (user_id,))
         chat_id = cursor.fetchone()[0]
         self.close()
         return chat_id
 
-    def record_messages_sent(self, user_id, messages_sent):
+    def record_message_sent(self, user_id, prompt_id):
         """Record the number of messages sent by a user."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO messages_sent (num_papers, user_id) VALUES (%s, %s)", (messages_sent, user_id))
+        cursor.execute("INSERT INTO messages_sent (user_id, prompt_id) VALUES (%s, %s);", (user_id, prompt_id))
+        cursor.close()
+
+        # Get message id of the last sent message to the user
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id FROM messages_sent WHERE user_id = %s ORDER BY id DESC LIMIT 1;", (user_id,))
+        message_id = cursor.fetchone()[0]
+        self.close()
+        return message_id
+    
+    def add_paper_to_message(self, message_id, paper_id):
+        """Add a paper to a message."""
+        self.connect()
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO paper_in_message (message_id, paper_id) VALUES (%s, %s);", (message_id, paper_id))
         self.close()
 
     def record_num_users(self, num_users):
         """Record the total number of users."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO number_users (num_users) VALUES (%s)", (num_users,))
+        cursor.execute("INSERT INTO number_users (num_users) VALUES (%s);", (num_users,))
         self.close()
 
     def store_preview(self, user_id, prompt):
         """Store a preview of the prompt."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO preview_papers (user_id, prompt) VALUES (%s, %s)", (user_id, prompt))
+        cursor.execute("INSERT INTO preview_papers (user_id, prompt) VALUES (%s, %s);", (user_id, prompt))
         self.close()
 
     def update_user(self, user_id, updated_at):
         """Update the user’s last updated timestamp."""
         self.connect()
         cursor = self.conn.cursor()
-        cursor.execute("UPDATE users SET updated_at = %s WHERE id = %s", (updated_at, user_id))
+        cursor.execute("UPDATE users SET updated_at = %s WHERE id = %s;", (updated_at, user_id))
         self.close()

@@ -23,6 +23,7 @@ services:
       - .env
     networks:
       - ollama-docker
+    restart: unless-stopped
 
   arxiv-script:
     build:
@@ -32,6 +33,7 @@ services:
       - .env
     networks:
       - ollama-docker
+    restart: unless-stopped
 
   pubmed-script:
     build:
@@ -41,6 +43,7 @@ services:
       - .env
     networks:
       - ollama-docker
+    restart: unless-stopped
 
   db:
     container_name: db_container
@@ -52,6 +55,19 @@ services:
     volumes:
      - ./database_init/init.sql:/docker-entrypoint-initdb.d/init.sql
      - db_data:/var/lib/postgresql/data
+    networks:
+      - ollama-docker
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: "."
+      dockerfile: telegram/DOCKERFILE
+    env_file:
+      - .env
+    volumes:
+      - ./telegram/handlers:/codebase/handlers
+    restart: unless-stopped
     networks:
       - ollama-docker
 

@@ -19,16 +19,16 @@ CREATE TABLE IF NOT EXISTS prompts (
     user_id    INTEGER NOT NULL,
     prompt     TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
-    activate   BOOLEAN DEFAULT TRUE,
+    active   BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
 -- Create the 'messages_sent' table
 CREATE TABLE IF NOT EXISTS messages_sent (
     id         SERIAL PRIMARY KEY,
+    prompt_id  INTEGER NOT NULL,
     timestamp  TIMESTAMP DEFAULT NOW(),
-    user_id    INTEGER NOT NULL,
-    num_papers INTEGER NOT NULL
+    user_id    INTEGER NOT NULL
 );
 
 -- Create the 'papers' table

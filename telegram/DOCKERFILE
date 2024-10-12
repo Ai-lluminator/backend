@@ -1,0 +1,33 @@
+FROM python:3.10-slim
+
+# Set environment variables
+ENV PYTHONFAULTHANDLER=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100
+
+# Update and install essential packages
+RUN apt-get update && apt-get install -y build-essential python3-venv
+
+# Set up working directories
+RUN mkdir -p /codebase /storage
+WORKDIR /codebase
+
+# Copy source code to container
+COPY ./telegram/telegram_handler.py /codebase/telegram_handler.py
+COPY ./database.py /codebase/database.py
+
+COPY /.env /codebase/.env
+
+# Install dependencies
+COPY telegram/requirements.txt .
+RUN pip3 install -r requirements.txt
+
+# Make the script executable
+RUN chmod +x /codebase/telegram_handler.py
+
+# Default command to run your bot script
+CMD ["python3", "/codebase/telegram_handler.py"]
