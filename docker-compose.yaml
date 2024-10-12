@@ -71,6 +71,16 @@ services:
     networks:
       - ollama-docker
 
+  updater:
+    build:
+      dockerfile: ./telegram_update/DOCKERFILE    # Specify the Dockerfile for app1
+    container_name: update-container
+    env_file:
+      - .env
+    networks:
+      - ollama-docker
+    restart: unless-stopped
+
 volumes:
   db_data:
 

@@ -71,16 +71,28 @@ class RAG:
         cur.close()
         return id, title, content
 
-    def query(self, prompt, limit=1, updated_at=None):
+   
+    def query(self, prompt, limit=4, updated_at=None):
         cur = self.conn.cursor()
         query_embedding = self.vectorize(prompt)
 
-        cur.execute(
-            """SELECT id, title, link, 1 - (embedding <=> %s) AS cosine_similarity
-               FROM papers
-               ORDER BY cosine_similarity DESC LIMIT 5;""",
-            (query_embedding,)
-        )
+        if updated_at:
+            cur.execute(
+                """SELECT id, title, link, 1 - (embedding <=> %s) AS cosine_similarity
+                FROM papers
+                WHERE created_at > %s
+                ORDER BY cosine_similarity DESC
+                LIMIT %s;""",
+                (query_embedding, updated_at, limit)
+            )
+        else:
+            cur.execute(
+                """SELECT id, title, link, 1 - (embedding <=> %s) AS cosine_similarity
+                FROM papers
+                ORDER BY cosine_similarity DESC
+                LIMIT %s;""",
+                (query_embedding, limit)
+            )
 
         papers = []
         for row in cur.fetchall():

@@ -1,0 +1,1 @@
+00 09 * * * /usr/local/bin/python /usr/src/app/updater.py >> /usr/src/app/cron.log 2>&1
