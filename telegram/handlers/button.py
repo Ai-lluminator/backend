@@ -14,7 +14,7 @@ async def remove_prompt_from_database(query, user_id: int, prompt: str) -> None:
 
 async def summarize_paper(query, user_id: int, paper_id: int) -> None:
     rag = RAG(Config.DB_HOST, Config.DB_PORT, Config.EMBEDDING_LINK, Config.DB_USER, Config.DB_PASSWORD, Config.DB_NAME)
-    title, content = rag.get_document(paper_id)
+    id, title, content = rag.get_document(paper_id)
 
     ollama = Client(Config.EMBEDDING_LINK)
 
