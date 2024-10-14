@@ -6,11 +6,11 @@ from dotenv import load_dotenv
 from handlers.config import Config
 from ollama import Client
 
-async def remove_prompt_from_database(query, user_id: int, prompt: str) -> None:
+async def remove_prompt_from_database(query, user_id: int, prompt_id: int) -> None:
     database = UserDatabase()
     database.connect()
-    database.delete_prompt(user_id, prompt)
-    await query.edit_message_text(text=f"Prompt '{prompt}' deleted successfully.")
+    database.set_prompt_inactive(user_id, prompt_id)
+    await query.edit_message_text(text=f"Prompt deactivated successfully.")
 
 async def summarize_paper(query, user_id: int, paper_id: int) -> None:
     rag = RAG(Config.DB_HOST, Config.DB_PORT, Config.EMBEDDING_LINK, Config.DB_USER, Config.DB_PASSWORD, Config.DB_NAME)

@@ -32,15 +32,22 @@ async def delete_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     database = UserDatabase()
     database.connect()
     if database.user_exists(update.message.from_user.id):
-        user_id = update.message.from_user.id
-        prompts = database.get_prompts(user_id, active=True)
+        telegram_id = update.message.from_user.id
+        prompts, ids = database.get_prompts(telegram_id, active=True)
 
         if not prompts:
             await update.message.reply_text("No prompts to delete.")
             return
 
+        show_prompts = []
+        for prompt in prompts:
+            if len(prompt) > 10:
+                show_prompts.append(prompt[:10] + "...")
+            else:
+                show_prompts.append(prompt)
+
         keyboard = [
-            [InlineKeyboardButton(prompt, callback_data=f"delete_{prompt}") for prompt in prompts]
+            [InlineKeyboardButton(show_prompt, callback_data=f"delete_{id}") for show_prompt, id in zip(show_prompts, ids)]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text('Please choose a prompt to delete:', reply_markup=reply_markup)
@@ -53,7 +60,7 @@ async def get_prompts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     database.connect()
     if database.user_exists(update.message.from_user.id):
         telegram_id = update.message.from_user.id
-        prompts = database.get_prompts(telegram_id)
+        prompts, ids = database.get_prompts(telegram_id, active=True)
 
         if not prompts:
             await update.message.reply_text("No prompts found.")

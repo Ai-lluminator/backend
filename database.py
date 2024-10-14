@@ -213,12 +213,14 @@ class UserDatabase:
         cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
         if active:
-            cursor.execute("SELECT prompt FROM prompts WHERE user_id = %s AND active = TRUE;", (user_id,))
+            cursor.execute("SELECT id, prompt FROM prompts WHERE user_id = %s AND active = TRUE;", (user_id,))
         else:
-            cursor.execute("SELECT prompt FROM prompts WHERE user_id = %s;", (user_id,))
-        prompts = [row[0] for row in cursor.fetchall()]
+            cursor.execute("SELECT id, prompt FROM prompts WHERE user_id = %s;", (user_id,))
+        result = cursor.fetchall()
+        prompts = [row[1] for row in result]
+        ids = [row[0] for row in result]
         self.close()
-        return prompts
+        return prompts, ids
 
     def prompt_exists(self, telegram_id, prompt):
         """Check if a prompt exists for a user."""
@@ -251,13 +253,13 @@ class UserDatabase:
         cursor.execute("DELETE FROM prompts WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
         self.close()
 
-    def set_prompt_inactive(self, telegram_id, prompt):
+    def set_prompt_inactive(self, telegram_id, prompt_id):
         """Set the prompt to inactive."""
         self.connect()
         cursor = self.conn.cursor()
         cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        cursor.execute("UPDATE prompts SET active = FALSE WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
+        cursor.execute("UPDATE prompts SET active = FALSE WHERE user_id = %s AND id = %s;", (user_id, prompt_id))
         self.close()
 
     def get_user_id(self, telegram_id):
