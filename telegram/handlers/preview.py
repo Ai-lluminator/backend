@@ -32,8 +32,7 @@ async def preview_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         response_string = "*Potential papers for this prompt:*"
         for paper in papers:
             redirect_url = get_url(paper['link'], user_id, prompt_id, paper['id'])
-            title = escape_markdown(paper['title'])
-            response_string += f"\n\n*{paper['title']}*\nLink: {redirect_url}"
+            response_string += f"\n\n*{paper['title']}*\n[Link to Paper]({redirect_url})"
             database.add_paper_to_message(message_id, paper['id'])
 
         await update.message.reply_markdown(response_string, disable_web_page_preview=True)

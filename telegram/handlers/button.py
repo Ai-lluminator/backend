@@ -18,8 +18,6 @@ async def summarize_paper(query, user_id: int, paper_id: int) -> None:
 
     ollama = Client(Config.EMBEDDING_LINK)
 
-    print(content)
-
     messages = [
         {
             "role": "user",
