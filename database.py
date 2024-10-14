@@ -223,10 +223,21 @@ class UserDatabase:
         cursor = self.conn.cursor()
         cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM prompts WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
-        count = cursor.fetchone()[0]
+        cursor.execute("SELECT id FROM prompts WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
+        results = cursor.fetchall()
+        if len(results) == 0:
+            self.close()
+            return False, -1, user_id
+        else:
+            self.close()
+            return True, results[0][0], user_id
+        
+    def set_prompt_active(self, user_id, prompt_id):
+        """Set the prompt to active."""
+        self.connect()
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE prompts SET active = TRUE WHERE user_id = %s AND id = %s;", (user_id, prompt_id))
         self.close()
-        return count > 0
 
     def delete_prompt(self, telegram_id, prompt):
         """Delete a prompt for a user."""

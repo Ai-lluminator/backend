@@ -15,8 +15,11 @@ async def add_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
     # Check if the prompt already exists
     if database.user_exists(update.message.from_user.id):
-        if database.prompt_exists(update.message.from_user.id, prompt):
-            await update.message.reply_text("This prompt already exists!")
+        prompt_exist, prompt_id, user_id = database.prompt_exists(update.message.from_user.id, prompt)
+
+        if prompt_exist:
+            database.set_prompt_active(user_id, prompt_id)
+            await update.message.reply_text("Prompt added successfully!")
         else:
             # Add the prompt to the database
             database.insert_prompt(update.message.from_user.id, prompt)
