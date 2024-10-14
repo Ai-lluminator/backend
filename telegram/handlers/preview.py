@@ -4,6 +4,16 @@ from database import UserDatabase, RAG
 from handlers.config import Config
 from handlers.helper import get_url
 
+def escape_markdown(text):
+    special_chars = [
+        '-'
+    ]
+    
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    
+    return text
+
 async def preview_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
         await update.message.reply_text("Please provide a prompt like '/preview_prompt I want to know everything'.")
@@ -22,10 +32,10 @@ async def preview_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         response_string = "*Potential papers for this prompt:*"
         for paper in papers:
             redirect_url = get_url(paper['link'], user_id, prompt_id, paper['id'])
-            title = paper['title']
-            response_string += f"\n\n*{title}*\nLink: {redirect_url}"
+            title = escape_markdown(paper['title'])
+            response_string += f"\n\n*{paper['title']}*\nLink: {redirect_url}"
             database.add_paper_to_message(message_id, paper['id'])
-    
+
         await update.message.reply_markdown(response_string, disable_web_page_preview=True)
     else:
         await update.message.reply_text("Please register with this service first using /start.")

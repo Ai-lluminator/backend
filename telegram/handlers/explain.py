@@ -11,7 +11,6 @@ async def summarize_paper(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if database.user_exists(update.message.from_user.id):
         telegram_id = update.message.from_user.id
         user_id = database.get_user_id(telegram_id)
-        print(user_id)
         papers = database.get_papers_from_last_message(user_id)
 
         if not papers:
