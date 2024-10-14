@@ -24,9 +24,11 @@ def fetch_cs_updates():
 
     timestamp = time.time()
 
-    documents = []
-    metadata = []
-    ids = []
+    urls = []
+    titles = []
+    contents = []
+
+    batch_size = 32
 
     # Iterate over each arXiv category to fetch and parse the RSS feed
     for category in arxiv_categories:
@@ -37,33 +39,17 @@ def fetch_cs_updates():
         print(f"Number of papers: {len(feed.entries)}")
 
         # Collect only new entries not already in the RAG database
-        entry_ids = [entry.id for entry in feed.entries]
-        existing_ids = rag.check_id_exists(entry_ids)
-        new_entries = [entry for entry in feed.entries if entry.id not in existing_ids and entry.id not in ids]
+        entry_urls = [entry.link for entry in feed.entries]
+        existing_ids = rag.check_id_exists(entry_urls)
+        data = [entry for entry in feed.entries if entry.link not in existing_ids]
 
-        # Process new entries
-        for entry in new_entries:
-            title = entry.title
-            link = entry.link
-            description = entry.description
-            authors = entry.author
-            document = f"{title} {description}"
-            meta_data = {
-                "link": link,
-                "authors": authors,
-                "title": title,
-                "timestamp": timestamp
-            }
+        urls = [entry.link for entry in data]
+        titles = [entry.title for entry in data]
+        contents = [f"{entry.title} \n {entry.description}" for entry in data]
 
-            documents.append(document)
-            metadata.append(meta_data)
-            ids.append(entry.id)
-
-        print(f"Fetched {len(new_entries)} new papers from {category}")
-
-    # Add new documents to the RAG if any new entries were found
-    if documents:
-        rag.add_documents(documents, metadata, ids)
+        # Add new documents to the RAG if any new entries were found
+        if urls:
+            rag.add_documents(urls, titles, contents)
 
 # Execute the function to fetch updates
 fetch_cs_updates()

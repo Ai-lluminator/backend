@@ -22,7 +22,7 @@ class LargeEmbeddingFunction():
 class RAG:
 
     def __init__(self, postgres_link, postgres_port, embedding_link, db_user, db_password, db_name) -> None:
-        self.embedding_model = LargeEmbeddingFunction("all-minilm", embedding_link)
+        self.embedding_model = LargeEmbeddingFunction("cowolff/science_bge_large", embedding_link)
         # self.embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="dunzhang/stella_en_400M_v5")
         self.conn = psycopg2.connect(
             user=db_user,

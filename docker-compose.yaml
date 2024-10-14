@@ -8,12 +8,17 @@ services:
     restart: unless-stopped
     build:
       dockerfile: ollama/DOCKERFILE
-    ports:
-      - 11434:11434
     environment:
       - OLLAMA_KEEP_ALIVE=24h
     networks:
       - ollama-docker
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   aisel-script:
     build:
@@ -48,8 +53,6 @@ services:
   db:
     container_name: db_container
     image: ankane/pgvector
-    ports:
-     - 5432:5432
     env_file:
       - .env
     volumes:

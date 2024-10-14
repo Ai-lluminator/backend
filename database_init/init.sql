@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS papers (
     created_at  TIMESTAMP DEFAULT NOW(),
     title       TEXT,
     content     TEXT,
-    embedding   vector(384)
+    embedding   vector(1024)
 );
 
 -- CREATE the 'summary' table
