@@ -33,7 +33,7 @@ async def delete_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     database.connect()
     if database.user_exists(update.message.from_user.id):
         user_id = update.message.from_user.id
-        prompts = database.get_prompts(user_id)
+        prompts = database.get_prompts(user_id, active=True)
 
         if not prompts:
             await update.message.reply_text("No prompts to delete.")

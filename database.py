@@ -206,13 +206,16 @@ class UserDatabase:
         cursor.execute("DELETE FROM users WHERE telegram_id = %s;", (telegram_id,))
         self.close()
 
-    def get_prompts(self, telegram_id):
+    def get_prompts(self, telegram_id, active=True):
         """Get all prompts for a user."""
         self.connect()
         cursor = self.conn.cursor()
         cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
         user_id = cursor.fetchone()[0]
-        cursor.execute("SELECT prompt FROM prompts WHERE user_id = %s;", (user_id,))
+        if active:
+            cursor.execute("SELECT prompt FROM prompts WHERE user_id = %s AND active = TRUE;", (user_id,))
+        else:
+            cursor.execute("SELECT prompt FROM prompts WHERE user_id = %s;", (user_id,))
         prompts = [row[0] for row in cursor.fetchall()]
         self.close()
         return prompts
