@@ -248,6 +248,15 @@ class UserDatabase:
         cursor.execute("DELETE FROM prompts WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
         self.close()
 
+    def set_prompt_inactive(self, telegram_id, prompt):
+        """Set the prompt to inactive."""
+        self.connect()
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE telegram_id = %s;", (telegram_id,))
+        user_id = cursor.fetchone()[0]
+        cursor.execute("UPDATE prompts SET active = FALSE WHERE user_id = %s AND prompt = %s;", (user_id, prompt))
+        self.close()
+
     def get_user_id(self, telegram_id):
         """Get the user ID based on telegram ID."""
         self.connect()
