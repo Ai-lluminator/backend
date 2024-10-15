@@ -82,4 +82,4 @@ The `telegram_update` service runs once per day (defined in `crontab`) to fetch 
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the GPL-V3 License. See the `LICENSE` file for details.
