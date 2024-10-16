@@ -12,6 +12,13 @@ services:
       - OLLAMA_KEEP_ALIVE=24h
     networks:
       - ollama-docker
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   aisel-script:
     build:
