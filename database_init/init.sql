@@ -8,8 +8,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- Create the 'users' table
 CREATE TABLE IF NOT EXISTS users (
     id                     SERIAL PRIMARY KEY,
-    telegram_id            INTEGER,
-    chat_id                INTEGER,
+    telegram_id            BIGINT,
+    chat_id                BIGINT,
     created_at             TIMESTAMP DEFAULT NOW()
 );
 
