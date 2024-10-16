@@ -4,7 +4,7 @@ import datetime
 from ollama import Client
 import psycopg2  # Assuming PostgreSQL, change if needed
 from psycopg2.extras import RealDictCursor
-from database import RAG
+from database import RAG, UserDatabase
 from dotenv import load_dotenv
 from helper import get_url
 import logging
@@ -99,13 +99,15 @@ def get_similar_papers(prompt):
         raise
 
 # Send papers via Telegram
-def send_papers_via_telegram(chat_id, papers, user_id, prompt_id):
+def send_papers_via_telegram(chat_id, papers, user_id, prompt_id, prompt):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    message = ""
-    
+    message = "New papers for your prompt\n'{}':\n".format(prompt['prompt'])
+    userDatabase = UserDatabase()
+    message_id = userDatabase.record_message_sent(user_id, prompt_id)
     for paper in papers:
         redirect_url = get_url(paper['link'], user_id, prompt_id, paper['id'])
-        message += f"*{paper['title']}*\n{redirect_url}\n\n"
+        message += f"*{paper['title']}*\n[Link to Paper]({redirect_url}\n\n"
+        userDatabase.add_paper_to_message(message_id, paper['id'])
     
     data = {
         "chat_id": chat_id,
@@ -147,7 +149,7 @@ def main():
                     similar_papers = get_similar_papers(prompt['prompt'])
                     
                     # Step 5: Send papers to the user via Telegram
-                    send_papers_via_telegram(chat_id, similar_papers, user_id, prompt["id"])
+                    send_papers_via_telegram(chat_id, similar_papers, user_id, prompt["id"], prompt)
                     
         finally:
             conn.close()
