@@ -101,12 +101,12 @@ def get_similar_papers(prompt):
 # Send papers via Telegram
 def send_papers_via_telegram(chat_id, papers, user_id, prompt_id, prompt):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    message = "New papers for your prompt\n'{}':\n".format(prompt['prompt'])
+    message = "New papers for your prompt\n'{}':\n\n".format(prompt['prompt'])
     userDatabase = UserDatabase()
     message_id = userDatabase.record_message_sent(user_id, prompt_id)
     for paper in papers:
         redirect_url = get_url(paper['link'], user_id, prompt_id, paper['id'])
-        message += f"*{paper['title']}*\n[Link to Paper]({redirect_url}\n\n"
+        message += f"*{paper['title']}*\n[Link to Paper]({redirect_url})\n\n"
         userDatabase.add_paper_to_message(message_id, paper['id'])
     
     data = {
