@@ -23,12 +23,20 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Sends a message to the user
-    endpoints = """/start registers your account with the bot\n\n
-    /add_prompt Adds a prompt that is queried twice a day\n\n
-    /delete_prompt Returns a selection of your prompts that you can delete\n\n
-    /get_prompts Returns a list of your prompts\n\n
-    /preview_prompt Returns a list of past papers for a given prompt"""
-    await update.message.reply_text(endpoints)
+    endpoints = """*Available Commands*
+
+    /start registers your account with the bot
+
+    /add\\_prompt Adds a prompt that is queried twice a day
+
+    /delete\\_prompt Returns a selection of your prompts that you can delete
+
+    /get\\_prompts Returns a list of your prompts
+
+    /preview\\_prompt Returns a list of past papers for a given prompt
+
+    /summarize Returns a LLM generated summary of the paper"""
+    await update.message.reply_markdown(endpoints)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Echo the user message
