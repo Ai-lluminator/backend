@@ -100,6 +100,8 @@ def get_similar_papers(prompt):
 
 # Send papers via Telegram
 def send_papers_via_telegram(chat_id, papers, user_id, prompt_id, prompt):
+    if len(papers) == 0:
+        return
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     message = "New papers for your prompt\n'{}':\n\n".format(prompt['prompt'])
     userDatabase = UserDatabase()
