@@ -30,6 +30,16 @@ services:
       - ollama-docker
     restart: unless-stopped
 
+  biorxiv-script:
+    build:
+      dockerfile: ./data-sources/bioRxiv/DOCKERFILE  # Ensure this points to the correct Dockerfile
+    container_name: biorxiv-container
+    env_file:
+      - .env
+    networks:
+      - ollama-docker
+    restart: unless-stopped
+
   arxiv-script:
     build:
       dockerfile: ./data-sources/arxiv/DOCKERFILE    # Specify the Dockerfile for app1

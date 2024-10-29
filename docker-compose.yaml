@@ -43,6 +43,16 @@ services:
       - ollama-docker
     restart: unless-stopped
 
+  biorxiv-script:
+    build:
+      dockerfile: ./data-sources/bioRxiv/DOCKERFILE  # Ensure this points to the correct Dockerfile
+    container_name: biorxiv-container
+    env_file:
+      - .env
+    networks:
+      - ollama-docker
+    restart: unless-stopped
+
   db:
     container_name: db_container
     image: ankane/pgvector
